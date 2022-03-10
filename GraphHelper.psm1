@@ -267,6 +267,16 @@ function Get-Tenants {
         }
         else {
             $Script:IncludedTenantsCache = (New-GraphGetRequest -uri "https://graph.microsoft.com/beta/contracts?`$top=999" -tenantid $ENV:Tenantid) | Select-Object CustomerID, DefaultdomainName, DisplayName, domains | Where-Object -Property DefaultdomainName -NotIn $Script:SkipListCache.name
+            if ($ENV:PartnerTenantAvailable) {
+                $PartnerTenant = @([PSCustomObject]@{
+                        customerId        = $env:TenantID
+                        defaultDomainName = $env:TenantID
+                        displayName       = '*Partner Tenant'
+                        domains           = 'PartnerTenant'
+                    })
+                $Script:IncludedTenantsCache = $PartnerTenant + $Script:IncludedTenantsCache
+            }
+            
             if ($Script:IncludedTenantsCache) {
                 $Script:IncludedTenantsCache | ConvertTo-Json | Out-File $cachefile
             }

@@ -275,11 +275,7 @@ function Get-Tenants {
                     })
                 $Script:IncludedTenantsCache = $PartnerTenant + $Script:IncludedTenantsCache
             }
-<<<<<<< HEAD
-            
-=======
    
->>>>>>> 79b51e2e132723d8c43c643ef039020cb58758dd
             if ($Script:IncludedTenantsCache) {
                 $Script:IncludedTenantsCache | ConvertTo-Json | Out-File $cachefile
             }

@@ -2,6 +2,15 @@ using namespace System.Net
 
 # Input bindings are passed in via param block.
 param($Request, $TriggerMetadata)
+$UserCreds = ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String($request.headers.'x-ms-client-principal')) | ConvertFrom-Json)
+if ("admin" -notin $UserCreds.userRoles) {
+      Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
+                  StatusCode = [HttpStatusCode]::Forbidden
+                  Body       = "Could not find admin role. Please login under the correct user, or go back to the wizard and click the URL again."
+            })
+      exit
+}
+
 $APIName = $TriggerMetadata.FunctionName
 Log-Request -user $request.headers.'x-ms-client-principal' -API $APINAME  -message "Accessed this API" -Sev "Debug"
 $ResourceGroup = $ENV:Website_Resource_Group
@@ -13,15 +22,16 @@ if ($env:MSI_SECRET) {
 $KV = Get-AzKeyVault -SubscriptionID $Subscription -ResourceGroupName $ResourceGroup
 
 try {
+      if ($Request.query.count -lt 1 ) { $Results = "No authentication code found. Please go back to the wizard and click the URL again." }
+
       if ($request.body.setkeys) {
             Set-AzKeyVaultSecret -VaultName $kv.vaultname -Name 'tenantid' -SecretValue (ConvertTo-SecureString -String $request.body.tenantid -AsPlainText -Force)
             Set-AzKeyVaultSecret -VaultName $kv.vaultname -Name 'RefreshToken' -SecretValue (ConvertTo-SecureString -String $request.body.RefreshToken -AsPlainText -Force)
             Set-AzKeyVaultSecret -VaultName $kv.vaultname -Name 'ExchangeRefreshToken' -SecretValue (ConvertTo-SecureString -String $request.body.exchangeRefreshToken -AsPlainText -Force)
             Set-AzKeyVaultSecret -VaultName $kv.vaultname -Name 'applicationid' -SecretValue (ConvertTo-SecureString -String $request.body.applicationid -AsPlainText -Force)
             Set-AzKeyVaultSecret -VaultName $kv.vaultname -Name 'applicationsecret' -SecretValue (ConvertTo-SecureString -String $request.body.applicationsecret -AsPlainText -Force)
-            $Results = @{ Results = "Replaced keys" }
+            $Results = @{ Results = "Replaced keys succesfully. Please clear your token cache or wait 24 hours for the cache to be cleared." }
       }
-      if ($Request.query.count -lt 1 ) { $Results = "No authentication code found. Please retry." }
       if ($Request.query.error -eq 'invalid_client') { $Results = "Client ID was not found in Azure. Try waiting 10 seconds to try again, if you have gotten this error after 5 minutes, please restart the process." }
       if ($request.query.code) {
             try {

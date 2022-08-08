@@ -6,13 +6,13 @@ $UserCreds = ([System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase6
 if ("admin" -notin $UserCreds.userRoles) {
       Push-OutputBinding -Name Response -Value ([HttpResponseContext]@{
                   StatusCode = [HttpStatusCode]::Forbidden
-                  Body       = "Could not find admin role on your user. Try refreshing this page fully (CTRL+F5) or logging in under the right user."
+                  Body       = "Could not find admin role on your user. Try reloading this page by copying the URL, and visiting it once more or logging in under the right user."
             })
       exit
 }
 
 $APIName = $TriggerMetadata.FunctionName
-Log-Request -user $request.headers.'x-ms-client-principal' -API $APINAME  -message "Accessed this API" -Sev "Debug"
+Write-LogMessage -user $request.headers.'x-ms-client-principal' -API $APINAME  -message "Accessed this API" -Sev "Debug"
 if ($env:MSI_SECRET) {
       Disable-AzContextAutosave -Scope Process | Out-Null
       $AzSession = Connect-AzAccount -Identity
